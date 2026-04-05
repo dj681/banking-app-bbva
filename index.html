@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mobil Bankacılık Eğitim Uygulaması</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #1a6b3a;
+      --primary-dark: #145530;
+      --accent: #f0a500;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --text: #1c2a3a;
+      --muted: #6b7c93;
+      --danger: #d93025;
+      --success: #188038;
+      --radius: 12px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.10);
+    }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 60px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .nav-brand { font-size: 1.2rem; font-weight: 700; letter-spacing: .5px; }
+    .nav-links { display: flex; gap: 8px; }
+    .nav-links button {
+      background: transparent;
+      border: 1.5px solid rgba(255,255,255,0.45);
+      color: #fff;
+      padding: 6px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      transition: background .2s;
+    }
+    .nav-links button:hover, .nav-links button.active {
+      background: rgba(255,255,255,0.18);
+    }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 960px; margin: 0 auto; padding: 28px 16px; }
+
+    /* ── PAGES ── */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .card-title { font-size: 1rem; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
+    .card-value { font-size: 2rem; font-weight: 700; color: var(--text); }
+    .card-value.positive { color: var(--success); }
+    .card-value.negative { color: var(--danger); }
+
+    /* ── GRID ── */
+    .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+
+    /* ── ACCOUNT BADGE ── */
+    .account-hero {
+      background: linear-gradient(135deg, var(--primary) 0%, #25a56a 100%);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      margin-bottom: 20px;
+    }
+    .account-hero .label { font-size: .85rem; opacity: .8; margin-bottom: 4px; }
+    .account-hero .balance { font-size: 2.6rem; font-weight: 800; }
+    .account-hero .iban { font-size: .8rem; opacity: .7; margin-top: 10px; letter-spacing: 1px; }
+
+    /* ── TRANSACTIONS ── */
+    .tx-list { list-style: none; }
+    .tx-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid #eef0f3;
+    }
+    .tx-item:last-child { border-bottom: none; }
+    .tx-icon {
+      width: 42px; height: 42px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+    }
+    .tx-icon.in  { background: #e6f4ea; }
+    .tx-icon.out { background: #fce8e6; }
+    .tx-info { flex: 1; }
+    .tx-name { font-weight: 600; font-size: .95rem; }
+    .tx-date { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+    .tx-amount { font-weight: 700; font-size: 1rem; }
+    .tx-amount.in  { color: var(--success); }
+    .tx-amount.out { color: var(--danger); }
+
+    /* ── FORMS ── */
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+    input, select {
+      width: 100%; padding: 10px 14px;
+      border: 1.5px solid #d0d7e2;
+      border-radius: 8px; font-size: .95rem;
+      outline: none; transition: border .2s;
+    }
+    input:focus, select:focus { border-color: var(--primary); }
+    .btn {
+      display: inline-block; padding: 11px 28px;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      transition: background .2s;
+    }
+    .btn:hover { background: var(--primary-dark); }
+    .btn-full { width: 100%; text-align: center; }
+    .btn-accent { background: var(--accent); color: #1c2a3a; }
+    .btn-accent:hover { background: #d49200; }
+
+    /* ── ALERT ── */
+    .alert {
+      padding: 12px 16px; border-radius: 8px;
+      margin-bottom: 16px; font-size: .9rem;
+      display: none;
+    }
+    .alert.success { background: #e6f4ea; color: var(--success); display: block; }
+    .alert.error   { background: #fce8e6; color: var(--danger);  display: block; }
+
+    /* ── EDUCATION ── */
+    .edu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .edu-card {
+      background: var(--card); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 20px;
+      cursor: pointer; transition: transform .15s, box-shadow .15s;
+    }
+    .edu-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.13); }
+    .edu-card .icon { font-size: 2rem; margin-bottom: 10px; }
+    .edu-card h3 { font-size: 1rem; margin-bottom: 6px; }
+    .edu-card p  { font-size: .85rem; color: var(--muted); line-height: 1.5; }
+    .edu-content { display: none; background: #f9fafb; border-left: 4px solid var(--primary); padding: 14px; border-radius: 0 8px 8px 0; margin-top: 12px; font-size: .88rem; line-height: 1.6; color: var(--text); }
+    .edu-content.open { display: block; }
+
+    /* ── SECTION HEADER ── */
+    .section-header { font-size: 1.3rem; font-weight: 700; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-brand">🏦 Banka Eğitim</span>
+  <div class="nav-links">
+    <button class="active" onclick="showPage('dashboard')">Genel Bakış</button>
+    <button onclick="showPage('transfer')">Transfer</button>
+    <button onclick="showPage('education')">Eğitim</button>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ── DASHBOARD ── -->
+  <div id="page-dashboard" class="page active">
+    <div class="account-hero">
+      <div class="label">Toplam Bakiye</div>
+      <div class="balance" id="display-balance">₺ 12.450,00</div>
+      <div class="iban">TR12 0001 2345 6789 0123 4567 89</div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">Bu Ay Gelen</div>
+        <div class="card-value positive" id="total-income">₺ 3.200,00</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Bu Ay Giden</div>
+        <div class="card-value negative" id="total-expense">₺ 750,00</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Aktif Kartlar</div>
+        <div class="card-value">2</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-header">Son İşlemler</div>
+      <ul class="tx-list" id="tx-list"></ul>
+    </div>
+  </div>
+
+  <!-- ── TRANSFER ── -->
+  <div id="page-transfer" class="page">
+    <div class="section-header">Para Transferi</div>
+    <div class="card">
+      <div id="transfer-alert" class="alert"></div>
+      <div class="form-group">
+        <label>Alıcı IBAN</label>
+        <input type="text" id="iban-input" placeholder="TR00 0000 0000 0000 0000 0000 00" maxlength="32" />
+      </div>
+      <div class="form-group">
+        <label>Alıcı Adı</label>
+        <input type="text" id="recipient-name" placeholder="Ad Soyad" />
+      </div>
+      <div class="form-group">
+        <label>Tutar (₺)</label>
+        <input type="number" id="transfer-amount" placeholder="0,00" min="1" />
+      </div>
+      <div class="form-group">
+        <label>Açıklama</label>
+        <input type="text" id="transfer-desc" placeholder="Ödeme açıklaması" />
+      </div>
+      <button class="btn btn-full" onclick="doTransfer()">Transferi Gerçekleştir</button>
+    </div>
+  </div>
+
+  <!-- ── EDUCATION ── -->
+  <div id="page-education" class="page">
+    <div class="section-header">Bankacılık Rehberi</div>
+    <div class="edu-grid" id="edu-grid"></div>
+  </div>
+
+</div>
+
+<script>
+  /* ── STATE ── */
+  let balance = 12450;
+
+  const transactions = [
+    { type:'in',  name:'Maaş Ödemesi',         date:'03 Nis 2026', amount: 3200 },
+    { type:'out', name:'Fatura – Elektrik',     date:'01 Nis 2026', amount:  180 },
+    { type:'out', name:'Market Alışverişi',      date:'31 Mar 2026', amount:  320 },
+    { type:'in',  name:'Kira Geliri',            date:'30 Mar 2026', amount: 1500 },
+    { type:'out', name:'Yakıt',                  date:'28 Mar 2026', amount:  250 },
+  ];
+
+  const educationTopics = [
+    {
+      icon: '💳',
+      title: 'Banka Kartı ve Kredi Kartı',
+      summary: 'İkisi arasındaki farkı öğrenin.',
+      detail: '<b>Banka Kartı (Debit):</b> Hesabınızdaki mevcut parayı kullanır; borç oluşturmaz.<br><b>Kredi Kartı:</b> Bankadan ödünç para kullanmanızı sağlar. Zamanında ödeme yapmazsanız faiz işler. Kredi puanınızı olumlu ya da olumsuz etkiler.'
+    },
+    {
+      icon: '📈',
+      title: 'Faiz ve Getiri',
+      summary: 'Paranızı nasıl büyütürsünüz?',
+      detail: '<b>Basit Faiz:</b> Anapara üzerinden hesaplanır.<br><b>Bileşik Faiz:</b> Her dönem kazanılan faiz de anaparaya eklenerek büyüme hızlanır — "paranın parayı kazanması".<br><b>İpucu:</b> Uzun vadeli tasarruf için bileşik faiz güçlü bir araçtır.'
+    },
+    {
+      icon: '🛡️',
+      title: 'Banka Güvenliği',
+      summary: 'Hesabınızı koruma altına alın.',
+      detail: '• Şifrelerinizi kimseyle paylaşmayın.<br>• SMS doğrulama (2FA) kullanın.<br>• Halka açık Wi-Fi\'de bankacılık işlemi yapmaktan kaçının.<br>• Hesap hareketlerinizi düzenli kontrol edin.<br>• Şüpheli işlemleri hemen bankaya bildirin.'
+    },
+    {
+      icon: '🏠',
+      title: 'Konut Kredisi (Mortgage)',
+      summary: 'Ev almanın finansal boyutu.',
+      detail: '<b>Peşinat:</b> Genellikle ev değerinin %20\'si istenir.<br><b>Vade:</b> 10–30 yıl arasında değişir; vade uzadıkça aylık taksit azalır ancak toplam faiz artar.<br><b>Sabit / Değişken Faiz:</b> Sabit faiz öngörülebilirlik sunar; değişken faiz piyasaya göre dalgalanır.'
+    },
+    {
+      icon: '📊',
+      title: 'Bütçe Yönetimi',
+      summary: 'Gelirinizi akıllıca planlayın.',
+      detail: '<b>50/30/20 Kuralı:</b><br>• %50 → Zorunlu giderler (kira, faturalar)<br>• %30 → İstekler (eğlence, yeme-içme)<br>• %20 → Tasarruf ve borç ödemeleri<br><br>Aylık bütçe takibi, gereksiz harcamaları görmenizi sağlar.'
+    },
+    {
+      icon: '🔄',
+      title: 'EFT ve Havale',
+      summary: 'Para transferi yöntemleri.',
+      detail: '<b>Havale:</b> Aynı banka içinde anlık ve ücretsiz transfer.<br><b>EFT (Elektronik Fon Transferi):</b> Farklı bankalar arasında para gönderimi; TCMB\'nin çalışma saatlerinde gerçekleşir.<br><b>FAST:</b> 7/24 anlık ödeme sistemi; bankalar arası hızlı transfer imkânı sunar.'
+    },
+  ];
+
+  /* ── RENDER TRANSACTIONS ── */
+  function renderTransactions() {
+    const list = document.getElementById('tx-list');
+    list.innerHTML = transactions.map(t => `
+      <li class="tx-item">
+        <div class="tx-icon ${t.type}">${t.type === 'in' ? '⬇️' : '⬆️'}</div>
+        <div class="tx-info">
+          <div class="tx-name">${t.name}</div>
+          <div class="tx-date">${t.date}</div>
+        </div>
+        <div class="tx-amount ${t.type}">${t.type === 'in' ? '+' : '-'}₺ ${t.amount.toLocaleString('tr-TR')}</div>
+      </li>
+    `).join('');
+  }
+
+  /* ── RENDER EDUCATION ── */
+  function renderEducation() {
+    const grid = document.getElementById('edu-grid');
+    grid.innerHTML = educationTopics.map((e, i) => `
+      <div class="edu-card" onclick="toggleEdu(${i})">
+        <div class="icon">${e.icon}</div>
+        <h3>${e.title}</h3>
+        <p>${e.summary}</p>
+        <div class="edu-content" id="edu-${i}">${e.detail}</div>
+      </div>
+    `).join('');
+  }
+
+  function toggleEdu(i) {
+    const el = document.getElementById('edu-' + i);
+    el.classList.toggle('open');
+  }
+
+  /* ── TRANSFER ── */
+  function doTransfer() {
+    const iban   = document.getElementById('iban-input').value.trim();
+    const name   = document.getElementById('recipient-name').value.trim();
+    const amount = parseFloat(document.getElementById('transfer-amount').value);
+    const desc   = document.getElementById('transfer-desc').value.trim();
+    const alert  = document.getElementById('transfer-alert');
+
+    alert.className = 'alert';
+
+    if (!iban || iban.length < 10) {
+      alert.textContent = '❌ Geçerli bir IBAN giriniz.';
+      alert.className = 'alert error'; return;
+    }
+    if (!name) {
+      alert.textContent = '❌ Alıcı adını giriniz.';
+      alert.className = 'alert error'; return;
+    }
+    if (isNaN(amount) || amount <= 0) {
+      alert.textContent = '❌ Geçerli bir tutar giriniz.';
+      alert.className = 'alert error'; return;
+    }
+    if (amount > balance) {
+      alert.textContent = '❌ Yetersiz bakiye.';
+      alert.className = 'alert error'; return;
+    }
+
+    balance -= amount;
+    transactions.unshift({ type:'out', name: 'Transfer → ' + name, date: 'Bugün', amount });
+    document.getElementById('display-balance').textContent = '₺ ' + balance.toLocaleString('tr-TR', { minimumFractionDigits:2 });
+
+    const totalExpense = transactions.filter(t => t.type === 'out').reduce((s,t) => s + t.amount, 0);
+    document.getElementById('total-expense').textContent = '₺ ' + totalExpense.toLocaleString('tr-TR', { minimumFractionDigits:2 });
+
+    alert.textContent = '✅ Transfer başarıyla gerçekleştirildi!';
+    alert.className = 'alert success';
+
+    document.getElementById('iban-input').value = '';
+    document.getElementById('recipient-name').value = '';
+    document.getElementById('transfer-amount').value = '';
+    document.getElementById('transfer-desc').value = '';
+
+    renderTransactions();
+    setTimeout(() => { alert.className = 'alert'; }, 4000);
+  }
+
+  /* ── NAVIGATION ── */
+  function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  /* ── INIT ── */
+  renderTransactions();
+  renderEducation();
+</script>
+</body>
+</html>
