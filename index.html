@@ -168,9 +168,9 @@
 <nav>
   <span class="nav-brand">🏦 Banka Eğitim</span>
   <div class="nav-links">
-    <button class="active" onclick="showPage('dashboard')">Genel Bakış</button>
-    <button onclick="showPage('transfer')">Transfer</button>
-    <button onclick="showPage('education')">Eğitim</button>
+    <button class="active" onclick="showPage('dashboard', event)">Genel Bakış</button>
+    <button onclick="showPage('transfer', event)">Transfer</button>
+    <button onclick="showPage('education', event)">Eğitim</button>
   </div>
 </nav>
 
@@ -332,8 +332,9 @@
 
     alert.className = 'alert';
 
-    if (!iban || iban.length < 10) {
-      alert.textContent = '❌ Geçerli bir IBAN giriniz.';
+    const cleanedIban = iban.replace(/\s/g, '').toUpperCase();
+    if (!/^TR\d{24}$/.test(cleanedIban)) {
+      alert.textContent = '❌ Geçerli bir Türk IBAN\'ı giriniz (TR ile başlayan 26 karakter).';
       alert.className = 'alert error'; return;
     }
     if (!name) {
@@ -369,7 +370,7 @@
   }
 
   /* ── NAVIGATION ── */
-  function showPage(id) {
+  function showPage(id, event) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
     document.getElementById('page-' + id).classList.add('active');
