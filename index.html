@@ -657,32 +657,44 @@
   }
 
   /* ── STATE ── */
-  const DEFAULT_BALANCE = 18000;
-  const DEFAULT_TRANSACTIONS = [
-    { type:'in',  name:'Virement entrant',        date:'05 Avr 2026', amount: 18000 },
-    { type:'out', name:'Transfert sortant - Abiola', date:'03 Avr 2026', time:'14:32', amount: 350, iban:'BJ66BJ0610100100144390000769', bic:'AFRIBBJLXXX', recipientName:'Abiola', desc:'Remboursement Abiola' },
-  ];
+  const PROFILES = {
+    '01965067': {
+      balance: 18000,
+      transactions: [
+        { type:'in',  name:'Virement entrant',        date:'05 Avr 2026', amount: 18000 },
+        { type:'out', name:'Transfert sortant - Abiola', date:'03 Avr 2026', time:'14:32', amount: 350, iban:'BJ66BJ0610100100144390000769', bic:'AFRIBBJLXXX', recipientName:'Abiola', desc:'Remboursement Abiola' },
+      ]
+    },
+    '01965068': {
+      balance: 120000,
+      transactions: [
+        { type:'in',  name:'Virement entrant',        date:'05 Avr 2026', amount: 120000 },
+      ]
+    },
+  };
 
-  function loadState() {
+  let activeUserCode = null;
+
+  function loadState(userCode) {
     try {
-      const saved = localStorage.getItem('bankingAppV2');
+      const saved = localStorage.getItem('bankingApp_' + userCode);
       if (saved) {
         const parsed = JSON.parse(saved);
         return { balance: parsed.balance, transactions: parsed.transactions.slice() };
       }
     } catch (e) {}
-    return { balance: DEFAULT_BALANCE, transactions: DEFAULT_TRANSACTIONS.slice() };
+    const def = PROFILES[userCode];
+    return { balance: def.balance, transactions: def.transactions.slice() };
   }
 
   function saveState() {
     try {
-      localStorage.setItem('bankingAppV2', JSON.stringify({ balance, transactions }));
+      localStorage.setItem('bankingApp_' + activeUserCode, JSON.stringify({ balance, transactions }));
     } catch (e) {}
   }
 
-  const state = loadState();
-  let balance = state.balance;
-  const transactions = state.transactions;
+  let balance = 0;
+  let transactions = [];
 
   /* ── RENDER TRANSACTIONS ── */
   function renderTransactions() {
@@ -799,15 +811,18 @@
   }
 
   /* ── LOGIN ── */
-  const USER_CODE = '01965067';
-
   function doLogin() {
     const code = document.getElementById('user-code-input').value.trim();
     const errEl = document.getElementById('login-error');
-    if (code === USER_CODE) {
+    if (PROFILES[code]) {
+      activeUserCode = code;
+      const state = loadState(code);
+      balance = state.balance;
+      transactions = state.transactions;
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('main-nav').style.display = 'flex';
       document.getElementById('main-container').style.display = 'block';
+      renderDashboard();
     } else {
       errEl.textContent = translate('login_error');
     }
@@ -870,7 +885,6 @@
   }
 
   /* ── INIT ── */
-  renderDashboard();
   renderEducation();
 </script>
 
