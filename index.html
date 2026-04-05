@@ -370,7 +370,36 @@
 
 </div>
 
+<!-- ── FIREBASE SDK ── -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
 <script>
+  /* ── FIREBASE CONFIGURATION ──────────────────────────────────────────────
+   * 1. Créez un projet sur https://console.firebase.google.com/
+   * 2. Activez "Realtime Database" (mode test pour commencer)
+   * 3. Remplacez les valeurs ci-dessous par celles de votre projet
+   * ─────────────────────────────────────────────────────────────────────── */
+  const firebaseConfig = {
+    apiKey:            "VOTRE_API_KEY",
+    authDomain:        "VOTRE_PROJET.firebaseapp.com",
+    databaseURL:       "https://VOTRE_PROJET-default-rtdb.firebaseio.com",
+    projectId:         "VOTRE_PROJET_ID",
+    storageBucket:     "VOTRE_PROJET.appspot.com",
+    messagingSenderId: "VOTRE_SENDER_ID",
+    appId:             "VOTRE_APP_ID"
+  };
+
+  let firebaseReady = false;
+  let db = null;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    firebaseReady = true;
+  } catch (e) {
+    console.warn('Firebase non configuré – mode hors-ligne uniquement.', e);
+  }
+
   /* ── TRANSLATIONS ── */
   const translations = {
     tr: {
@@ -674,8 +703,10 @@
   };
 
   let activeUserCode = null;
+  let firebaseListener = null;
 
-  function loadState(userCode) {
+  /* ── LOCAL FALLBACK (localStorage) ── */
+  function localLoadState(userCode) {
     try {
       const saved = localStorage.getItem('bankingApp_' + userCode);
       if (saved) {
@@ -688,9 +719,51 @@
   }
 
   function saveState() {
-    try {
-      localStorage.setItem('bankingApp_' + activeUserCode, JSON.stringify({ balance, transactions }));
-    } catch (e) {}
+    const payload = { balance, transactions };
+    if (firebaseReady) {
+      db.ref('users/' + activeUserCode).set(payload)
+        .catch(err => {
+          console.error('Firebase save failed, falling back to localStorage:', err);
+          saveLocalFallback(activeUserCode, payload);
+        });
+    } else {
+      saveLocalFallback(activeUserCode, payload);
+    }
+  }
+
+  function saveLocalFallback(userCode, payload) {
+    try { localStorage.setItem('bankingApp_' + userCode, JSON.stringify(payload)); } catch (e) {}
+  }
+
+  /* ── REAL-TIME SYNC ── */
+  function setupRealtimeSync(userCode) {
+    if (!firebaseReady) return;
+
+    // Detach any previous listener
+    if (firebaseListener && activeUserCode) {
+      db.ref('users/' + activeUserCode).off('value', firebaseListener);
+    }
+
+    firebaseListener = db.ref('users/' + userCode).on('value', snapshot => {
+      if (!snapshot.exists()) {
+        // Data was deleted from Firebase – reset to default profile values
+        const def = PROFILES[userCode];
+        balance = def.balance;
+        transactions = def.transactions.slice();
+        renderDashboard();
+        return;
+      }
+      const data = snapshot.val();
+      const txRaw = data.transactions;
+      // Firebase may return an object with numeric keys instead of a plain array
+      transactions = txRaw
+        ? (Array.isArray(txRaw) ? txRaw : Object.values(txRaw))
+        : [];
+      balance = data.balance;
+      renderDashboard();
+    }, err => {
+      console.error('Firebase sync error:', err);
+    });
   }
 
   let balance = 0;
@@ -814,17 +887,36 @@
   function doLogin() {
     const code = document.getElementById('user-code-input').value.trim();
     const errEl = document.getElementById('login-error');
-    if (PROFILES[code]) {
-      activeUserCode = code;
-      const state = loadState(code);
-      balance = state.balance;
-      transactions = state.transactions;
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('main-nav').style.display = 'flex';
-      document.getElementById('main-container').style.display = 'block';
-      renderDashboard();
-    } else {
+    if (!PROFILES[code]) {
       errEl.textContent = translate('login_error');
+      return;
+    }
+
+    activeUserCode = code;
+
+    // Show UI immediately with local/default data while Firebase loads
+    const localState = localLoadState(code);
+    balance = localState.balance;
+    transactions = localState.transactions;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-nav').style.display = 'flex';
+    document.getElementById('main-container').style.display = 'block';
+    renderDashboard();
+
+    if (firebaseReady) {
+      // Seed Firebase with default data on first login for this profile,
+      // then subscribe to real-time updates (chained to avoid race condition).
+      db.ref('users/' + code).get().then(snapshot => {
+        if (!snapshot.exists()) {
+          const def = PROFILES[code];
+          return db.ref('users/' + code).set({ balance: def.balance, transactions: def.transactions });
+        }
+      }).then(() => {
+        setupRealtimeSync(code);
+      }).catch(err => {
+        console.error('Firebase init error:', err);
+        setupRealtimeSync(code); // still subscribe even if seeding failed
+      });
     }
   }
 
