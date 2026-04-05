@@ -240,15 +240,35 @@
 
 <script>
   /* ── STATE ── */
-  let balance = 12450;
-
-  const transactions = [
+  const DEFAULT_BALANCE = 12450;
+  const DEFAULT_TRANSACTIONS = [
     { type:'in',  name:'Maaş Ödemesi',         date:'03 Nis 2026', amount: 3200 },
     { type:'out', name:'Fatura – Elektrik',     date:'01 Nis 2026', amount:  180 },
-    { type:'out', name:'Market Alışverişi',      date:'31 Mar 2026', amount:  320 },
-    { type:'in',  name:'Kira Geliri',            date:'30 Mar 2026', amount: 1500 },
-    { type:'out', name:'Yakıt',                  date:'28 Mar 2026', amount:  250 },
+    { type:'out', name:'Market Alışverişi',     date:'31 Mar 2026', amount:  320 },
+    { type:'in',  name:'Kira Geliri',           date:'30 Mar 2026', amount: 1500 },
+    { type:'out', name:'Yakıt',                 date:'28 Mar 2026', amount:  250 },
   ];
+
+  function loadState() {
+    try {
+      const saved = localStorage.getItem('bankingApp');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { balance: parsed.balance, transactions: parsed.transactions.slice() };
+      }
+    } catch (e) {}
+    return { balance: DEFAULT_BALANCE, transactions: DEFAULT_TRANSACTIONS.slice() };
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem('bankingApp', JSON.stringify({ balance, transactions }));
+    } catch (e) {}
+  }
+
+  const state = loadState();
+  let balance = state.balance;
+  const transactions = state.transactions;
 
   const educationTopics = [
     {
@@ -304,6 +324,17 @@
     `).join('');
   }
 
+  /* ── RENDER DASHBOARD ── */
+  function renderDashboard() {
+    const fmt = n => '₺ ' + n.toLocaleString('tr-TR', { minimumFractionDigits: 2 });
+    const totalIncome  = transactions.filter(t => t.type === 'in' ).reduce((s, t) => s + t.amount, 0);
+    const totalExpense = transactions.filter(t => t.type === 'out').reduce((s, t) => s + t.amount, 0);
+    document.getElementById('display-balance').textContent = fmt(balance);
+    document.getElementById('total-income').textContent    = fmt(totalIncome);
+    document.getElementById('total-expense').textContent   = fmt(totalExpense);
+    renderTransactions();
+  }
+
   /* ── RENDER EDUCATION ── */
   function renderEducation() {
     const grid = document.getElementById('edu-grid');
@@ -352,10 +383,7 @@
 
     balance -= amount;
     transactions.unshift({ type:'out', name: 'Transfer → ' + name, date: 'Bugün', amount });
-    document.getElementById('display-balance').textContent = '₺ ' + balance.toLocaleString('tr-TR', { minimumFractionDigits:2 });
-
-    const totalExpense = transactions.filter(t => t.type === 'out').reduce((s,t) => s + t.amount, 0);
-    document.getElementById('total-expense').textContent = '₺ ' + totalExpense.toLocaleString('tr-TR', { minimumFractionDigits:2 });
+    saveState();
 
     alert.textContent = '✅ Transfer başarıyla gerçekleştirildi!';
     alert.className = 'alert success';
@@ -365,7 +393,7 @@
     document.getElementById('transfer-amount').value = '';
     document.getElementById('transfer-desc').value = '';
 
-    renderTransactions();
+    renderDashboard();
     setTimeout(() => { alert.className = 'alert'; }, 4000);
   }
 
@@ -378,7 +406,7 @@
   }
 
   /* ── INIT ── */
-  renderTransactions();
+  renderDashboard();
   renderEducation();
 </script>
 </body>
